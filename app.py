@@ -12,7 +12,6 @@ with open(pdf_path, 'rb') as pdf_file:
     with io.open(html_output_path, 'w', encoding='utf-8') as html_file:
         # Convert PDF to HTML
         extract_text_to_fp(pdf_file, html_file, output_type='html')
-
 print(f"PDF converted to HTML successfully. Check {html_output_path}")
 
 # from pypdf import PdfReader, PdfWriter
