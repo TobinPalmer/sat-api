@@ -1,13 +1,17 @@
 import re
 
-from flask import Flask, request
+from bs4 import BeautifulSoup
+from flask import Flask, request, jsonify
 import json
+
+from flask_cors import CORS
+
 app = Flask(__name__)
+CORS(app)
 
 
 @app.route('/math/', methods=['GET'])
 def hello_world():
-    # get the request params
     question_type = request.args.get('type') or ''
     with open('math.json') as f:
         import random
@@ -23,31 +27,33 @@ def hello_world():
         question = data[random_key]['question']
         ans = data[random_key]['answer']
         choices = data[random_key]['answerChoices']
+
         try:
             correct_choice = re.search(r'Answer: (.)', ans).group(1)
         except AttributeError:
             correct_choice = None
 
+        data = {
+            'domain': data[random_key]["domain"],
+            'question': question,
+            'answer': ans
+        }
+
         if choices != '<ul></ul>':
-            # return f'{data[random_key]["domain"]} {question} \n {choices} \n {ans}'
-            data = {
-                'type': 'multiple_choice',
-                'domain': data[random_key]["domain"],
-                'question': question,
-                'choices': choices,
-                # Correct Choice is right after "Answer :"
-                'correctChoice': correct_choice,
-                'answer': ans
-            }
-            return data
+            choice_html = BeautifulSoup(choices)
+
+            data['type'] = 'multiple_choice'
+            data['correctChoice'] = correct_choice
+            data['correctChoiceIndex'] = ord(correct_choice) - ord('A')
+            data['choices'] = [str(choice) for choice in choice_html.select('li')]
         else:
-            data = {
-                'type': 'short_answer',
-                'domain': data[random_key]["domain"],
-                'question': question,
-                'answer': ans
-            }
-            return data
+            data['type'] = 'short_answer'
+
+        data_response = jsonify(data)
+
+        data_response.headers.add('Access-Control-Allow-Origin', '*')
+        return data_response
+
 
 if __name__ == '__main__':
     app.run()
